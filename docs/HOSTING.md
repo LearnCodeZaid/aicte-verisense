@@ -25,6 +25,8 @@ To preserve changes on another host, attach persistent storage at `/data`. The
 entrypoint preserves an existing database and uploads and keeps its JWT signing
 secret across restarts. An explicit `VERISENSE_SECRET` environment value takes
 precedence. Use the same persistent volume and make backups.
+Source availability switches and verification-call statistics also live under
+`/data/sources_state.json`, so the non-root runtime can update them.
 
 ## Frontend/backend connection
 

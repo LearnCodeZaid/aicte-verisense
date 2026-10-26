@@ -34,6 +34,7 @@ def main():
         os.environ["VERISENSE_SECRET"] = secret_file.read_text(encoding="utf-8").strip()
     os.environ.setdefault("VERISENSE_DB", str(data / "verisense.db"))
     os.environ.setdefault("VERISENSE_STORAGE", str(data / "storage"))
+    os.environ.setdefault("VERISENSE_SOURCES_STATE", str(data / "sources_state.json"))
     import cv2
     cv2.setNumThreads(1)
     import uvicorn
