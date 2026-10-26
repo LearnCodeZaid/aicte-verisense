@@ -20,6 +20,9 @@ model inference. OpenCV also uses one thread in the container. This avoids sizin
 thread pools from the host CPU count rather than the instance's actual quota.
 OCR models are released before forensic/QR analysis to avoid overlapping their
 memory peaks. Larger hosts can opt into model caching with `VERISENSE_OCR_CACHE=1`.
+Text detection uses a maximum 960-pixel side, with recognition on crops from the
+original image. The detector's library default instead preserves large inputs
+and can exceed the free instance's memory budget on a scanned page.
 
 To preserve changes on another host, attach persistent storage at `/data`. The
 entrypoint preserves an existing database and uploads and keeps its JWT signing

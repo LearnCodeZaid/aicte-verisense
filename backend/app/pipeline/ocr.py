@@ -45,7 +45,8 @@ def get_ocr_engine():
             # quota. Bound each ONNX session instead of auto-sizing thread pools.
             threads = max(1, int(get_settings().ocr_threads))
             _engine = RapidOCR(intra_op_num_threads=threads, inter_op_num_threads=threads,
-                               rec_batch_num=1, cls_batch_num=1)
+                               rec_batch_num=1, cls_batch_num=1,
+                               det_limit_type="max", det_limit_side_len=960)
     return _engine
 
 
