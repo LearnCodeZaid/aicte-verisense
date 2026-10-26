@@ -1,164 +1,179 @@
-# AICTE VeriSense 🏛️🔍
-### *AI-Powered Application Validation, Document Authentication & Regulatory Compliance Verification*
-> **Smart India Hackathon (SIH) 2026 | Problem Statement ID: 26261**  
-> **Organization:** All India Council for Technical Education (AICTE), Ministry of Education, Government of India  
-> **Bureau:** Regulation Bureau | **Category:** Software | **Theme:** Smart Automation  
+# AICTE VeriSense
 
-[![SIH-2026](https://img.shields.io/badge/SIH-2026-orange.svg?style=for-the-badge)](https://sih.gov.in)
-[![PS-26261](https://img.shields.io/badge/Problem%20ID-26261-blue.svg?style=for-the-badge)](https://sih.gov.in)
-[![AICTE-Regulation](https://img.shields.io/badge/AICTE-Regulation%20Bureau-emerald.svg?style=for-the-badge)](https://www.aicte-india.org)
-[![Build-Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=for-the-badge)](#)
+**Preliminary scrutiny in minutes, not weeks — every flag backed by evidence, every decision left to AICTE officials.**
 
----
+VeriSense is a decision-support platform for the preliminary scrutiny of AICTE approval
+applications. It identifies the applicable checklist, reads every uploaded document (OCR,
+classification, field extraction), cross-checks it against records AICTE already holds and against
+the authority that issued it, looks for signs of alteration or reuse, evaluates configurable norms
+from the Approval Process Handbook, and gives scrutiny officers an explainable, evidence-linked
+report. Final decisions remain with the competent authority.
 
-## 📌 Executive Summary
-
-Every year, the All India Council for Technical Education (AICTE) processes thousands of applications submitted by technical institutions across India for **Extension of Approval (EoA)**, new campus establishments, and intake expansion in accordance with the official **AICTE Approval Process Handbook (APH 2024–2027)**. 
-
-Manual scrutiny of high-volume documentation—such as land titles, municipal fire safety NOCs, building blueprints, faculty KYC rosters, and financial payment receipts—leads to severe administrative delays, missed document expiries, duplicate faculty listings, and unnoticed document forgery.
-
-**AICTE VeriSense** is an integrated, explainable decision-support platform designed to automate preliminary scrutiny, verify records directly against issuing authorities, detect image tampering, and conduct computer-vision infrastructure validation—**while strictly preserving statutory scrutiny and final authority with competent AICTE officials.**
+> Smart India Hackathon 2026 · Problem Statement **26261** — *AI-Powered Application Validation,
+> Document Authentication and Regulatory Compliance Verification* · AICTE, Regulation Bureau ·
+> Theme: Smart Automation.
+>
+> This is a prototype. It is not an official AICTE system, and all institutions, people and
+> documents in it are synthetic.
 
 ---
 
-## 🏛️ System Architecture
+## Screenshots
+
+Screenshots live in [`docs/images/`](docs/images/). *(To add: landing page, officer dashboard,
+application findings with evidence, document viewer with ELA overlay, verification tab, admin rules
+editor, audit chain verification.)*
+
+## What it does
+
+| Module | Highlights |
+|---|---|
+| **Application & document validation** | Category-specific checklists (7 categories, conditional items); institutional records pulled in (approvals, intake, faculty, accreditation, land, TER, deficiencies, affidavits); PDF text layer + RapidOCR; explainable classifier; per-type field extraction with source text and page; missing / expired / inconsistent items flagged; structured report and PDF |
+| **Anomaly & potential-forgery detection** | Error Level Analysis with heatmap; PDF/EXIF metadata (editing software, modified after creation, incremental updates); font inconsistency and text-overlay detection; duplicate documents across institutions (SHA-256 + perceptual hash); same faculty PAN at two institutions — all as preliminary indicators with evidence |
+| **Issuing-authority verification** | Ed25519-signed QR payloads verified against issuer keys and compared with printed values; reference-number lookups through one adapter per authority; six recorded states (Verified, Mismatch detected, Expired, Verification pending, Source unavailable, Manual review required) with source, method and timestamp |
+| **Regulatory & infrastructure compliance** | 29 configurable rules across 13 rule types: faculty-student ratio, cadre ratio, land and built-up area, TER payment, record and document consistency; computer-vision review of infrastructure photos (counts, blur, lighting, EXIF date, GPS distance from campus) — advisory |
+| **Dashboard & audit trail** | Region-scoped queue with compliance score and risk band; alerts; SHA-256 hash-chained, append-only audit log of rules applied, records checked, source responses and every action; chain verification |
+
+**Safeguards:** human-in-the-loop (officers recommend, only the Regional Director decides, a note is
+mandatory, approval is blocked while critical findings are open); server-side RBAC with
+institution/region scoping; explainable findings with rule ID, clause and evidence; configurable,
+versioned rules and checklists; PAN masking; all AI runs locally — no document leaves the deployment.
+
+## Architecture
 
 ```mermaid
-flowchart TD
-    subgraph INTAKE["1. Application & Evidence Intake"]
-        A["Institutional Application\n(EoA, New Institute, Intake Expansion)"] --> B["Dynamic Checklist Generator"]
-        B --> C["Document Upload Studio\n(Affidavits, Land Deeds, Fire NOC, Faculty Data)"]
-        B --> D["Infrastructure Photo Upload Studio\n(Classrooms, Labs, Amenities, Floor Plans)"]
-    end
-
-    subgraph ENGINE["2. Multi-Pipeline AI Scrutiny Core"]
-        C --> E["OCR & Structured Extraction\n(PaddleOCR / Vision Parser)"]
-        C --> F["Forgery & Tampering Engine\n(Error Level Analysis [ELA] + EXIF)"]
-        C --> G["Issuing Authority Verifier\n(Cryptographic QR + DigiLocker Gateway)"]
-        D --> H["Infrastructure Computer Vision\n(YOLOv8 Asset Detection)"]
-        E --> I["Cross-Document Consistency Matrix\n(Entity & Faculty Duplication Check)"]
-    end
-
-    subgraph NORMS["3. Regulatory Intelligence"]
-        E & H & I --> J["Configurable APH 2024-2027 Rule Engine\n(FSR 1:20, Cadre Ratios, Minimum Built-up Area)"]
-    end
-
-    subgraph OUTPUT["4. Decision Support & Human-In-The-Loop"]
-        F & G & J --> K["AICTE Bureau Central Scrutiny Workspace"]
-        K --> L["Mandatory 6-State Verification Status\n(Verified, Mismatch, Expired, Pending, Unavailable, Manual)"]
-        K --> M["Evidence-Linked Deficiency Document\n(Citing Exact APH Clauses)"]
-        K --> N["Immutable Audit Trail & Officer Sign-off"]
-    end
+flowchart LR
+  U[Institution · Officer · Regional Director · Admin] --> W[React portal]
+  W -- REST + JWT --> API[FastAPI /api]
+  API --> SEC[RBAC + scoping]
+  API --> ING[Ingest]
+  ING --> PIPE[Document AI<br/>OCR · classify · extract ·<br/>forensics · QR/signature · infra CV]
+  ING --> AD[Verification adapters]
+  AD --> MOCK[Issuing authorities<br/>simulated at /mock]
+  API --> VAL[Rule engine<br/>rules.yaml · checklists.yaml]
+  VAL --> REP[Findings · alerts · scores ·<br/>report + PDF]
+  API --> AUD[Hash-chained audit log]
+  VAL --> AUD
+  API --> DB[(SQLite / PostgreSQL)]
 ```
 
----
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (components, sequence and ER diagrams,
+deployment, AICTE portal integration design).
 
-## 🚀 Key Functional Modules (Direct PS 26261 Mapping)
+## Quickstart
 
-### 1. Intelligent Application & Document Validation
-* **Dynamic Category Checklists:** Automatically configures required documentary evidence based on the selected application category:
-  * Extension of Approval (EoA)
-  * Setting Up New Technical Campus
-  * Increase in Approved Intake / New Courses
-  * Supernumerary Seats (TFW / EWS)
-  * Closure or Change of Site
-* **Automated Data Extraction:** Extracts text, dates, certificate reference numbers, and table figures from uploaded PDFs and scans.
-* **Pre-Submission Compliance Meter:** Gives colleges real-time feedback on missing fields or expired certificates before submission.
+Requirements: Python 3.11 with [uv](https://docs.astral.sh/uv/), Node.js 18+.
 
-### 2. Anomaly & Potential Forgery Detection
-* **Error Level Analysis (ELA):** Analyzes JPEG compression differences to detect digital modifications, spliced text, or altered dates.
-* **EXIF & Metadata Forensics:** Flags documents created or modified in unauthorized image manipulation software (e.g., Adobe Photoshop, Canva).
-* **Duplicate Document & Faculty Cross-Matching:** Cross-checks faculty PAN/Aadhaar entries against the centralized AICTE registry to catch "ghost faculty" listed simultaneously at multiple colleges.
-
-### 3. Verification Through Original Issuing Authorities
-* **Mandatory 6-State Taxonomy:** Enforces the official verification states required by AICTE:
-  1. `Verified` (Cryptographically validated via QR / Registry)
-  2. `Mismatch Detected` (Discrepancy found against issuing authority records)
-  3. `Expired` (Document validity elapsed prior to submission)
-  4. `Verification Pending` (External API query queued)
-  5. `Source Unavailable` (Issuing authority API timeout or offline)
-  6. `Manual Review Required` (Unresolvable anomaly routed to regional scrutiny officer)
-* **Cryptographic QR Validation:** Decodes and verifies digital signature payloads on municipal certificates, building plan approvals, and e-Notary stamp papers.
-* **DigiLocker / National Academic Depository (NAD) Gateway:** Federated API connectivity to fetch authentic records directly from MeitY-authorized repositories.
-
-### 4. Regulatory & Infrastructure Compliance Assistance
-* **YOLOv8 Computer Vision Inspection:** Automatically validates physical facilities from uploaded photographs:
-  * Student-to-Computer terminal ratio in computer centers (Min 1:4).
-  * Classroom desk and seating capacity estimation.
-  * Laboratory safety equipment (fire extinguishers, first-aid).
-  * Barrier-free Divyangjan accessibility (1:12 slope PWD ramps, tactile floor tiles).
-* **Statutory Citations:** Every discrepancy explicitly cites the relevant clause from the AICTE Approval Process Handbook (e.g., *Clause 4.3.2 for FSR*, *Clause 5.4.1 for Fire NOC*).
-
-### 5. Centralized Decision-Support Dashboard & Audit Trail
-* **Officer Workspace:** Split-screen layout displaying original uploaded files side-by-side with extracted data, ELA heatmaps, and handbook rules.
-* **Advisory Action Bar:** AICTE scrutiny officers can choose to:
-  * *Endorse for Extension of Approval (EoA)*
-  * *Issue 15-Day Rectification Notice*
-  * *Order Physical Inspection (SAC Committee)*
-* **Immutable Audit Trail:** Chronological, tamper-evident log capturing timestamps, operator IDs, rules evaluated, and regulatory outcomes.
-* **Official AICTE Deficiency Report:** Generates an official, exportable PDF report formatted to government standards.
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, Lucide Icons, Radix UI (shadcn/ui), TanStack Query |
-| **Backend & APIs** | Python FastAPI, Pydantic v2, PyMuPDF, `pyzbar`, OpenCV |
-| **AI / Computer Vision** | YOLOv8 (`yolov8l.pt`), Error Level Analysis (PIL/OpenCV), Image Forensics |
-| **Regulatory Engine** | Configurable APH 2024–2027 Rule Matrix + Vector-grounded RAG |
-| **Security & Standards** | Role-Based Access Control (RBAC), Immutable Audit Logging, WCAG 2.1 Accessibility |
-
----
-
-## ⚡ Quickstart & Local Setup
-
-### 1. Prerequisites
-* **Node.js:** v18.0.0 or higher
-* **Python:** 3.10 to 3.12 (for backend CV modules)
-* **Git**
-
-### 2. Clone and Run Frontend
 ```bash
-git clone https://github.com/LearnCodeZaid/aicte-verisense.git
-cd aicte-verisense
+# 1. Backend — http://localhost:8001 (seeds demo data on first start)
+cd backend
+uv sync
+uv run uvicorn app.main:app --port 8001
 
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Launch the development server
+# 2. Frontend — http://localhost:5176 (proxies /api and /mock to the backend)
+cd frontend
+npm install
 npm run dev
 ```
-Open **[http://localhost:5176](http://localhost:5176)** in your browser.
 
----
+- Website: <http://localhost:5176/> · Portal: <http://localhost:5176/portal/login>
+- Interactive API docs: <http://localhost:8001/docs>
+- Re-seed from scratch: `cd backend && uv run python -m seed.seed --reset`
+- Tests: `cd backend && uv run pytest`
 
-## 🧪 Included Demonstration Scenarios
+### Demo credentials
 
-AICTE VeriSense comes with 3 pre-configured institutional applications for instant evaluator demonstration:
+All accounts use the password **`Demo@2026`**.
 
-1. **Pune Institute of Advanced Technology (PIAT) — PID: 1-39482910**
-   * *Scenario:* Standard EoA Application with Minor Deficiencies.
-   * *Flagged:* Fire Safety Certificate expired 16 days ago; FSR Cadre ratio short by 2 Assistant Professors.
-   * *CV Finding:* Computer lab contains 38 terminals against 40 required.
-2. **Apex Institute of Technology & Management — PID: 1-84920482**
-   * *Scenario:* High-Risk Intake Expansion.
-   * *Flagged:* ELA Tampering detected on Land Allotment Deed (plot numbers altered in Photoshop); 3 faculty PAN numbers duplicate with another college.
-3. **Vidyavardhini College of Engineering — PID: 1-10294822**
-   * *Scenario:* 100% Compliant / Clean Pass.
-   * *Outcome:* All documents verified via DigiLocker and municipal QR; all infrastructure norms satisfied.
+| Username | Role | Scope |
+|---|---|---|
+| `inst.piat` | Institution | Own applications (PIAT) |
+| `inst.apex` | Institution | Own applications (Apex) |
+| `officer.wro` | Scrutiny officer | Western region |
+| `officer.nro` | Scrutiny officer | Northern region |
+| `rd.wro` | Regional director | Western region, final decisions |
+| `admin` | Administrator | Rules, checklists, sources, audit |
 
----
+A seven-minute walkthrough for evaluators is in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
-## ⚖️ Essential Safeguards & Statutory Disclaimer
+<!-- DEMO_SCENARIOS -->
 
-* **Configurability:** All checks are dynamically configurable to reflect amendments to the AICTE Approval Process Handbook without code changes.
-* **Privacy & Access Control:** Role-based access boundaries ensure institutions only view their own submissions, while AICTE scrutiny officers access regional queues.
-* **Human-in-the-Loop:** **AI outputs are decision-support recommendations only.** Statutory scrutiny, physical inspections, and final regulatory decisions remain exclusively with competent AICTE authorities.
+## Repository structure
 
----
+```text
+backend/
+  app/
+    main.py              FastAPI app, routers, /mock mount, startup seeding
+    security.py          JWT, bcrypt, role guards, institution/region scoping
+    audit.py             hash-chained append-only audit log
+    routers/             applications, documents, findings, alerts, audit, rules, sources, ...
+    engine/              ingest, validator (rules, scores, alerts), rules loader, report PDF
+    pipeline/            ocr, classify, extract, forensics, hashing, qr, signature, infra_cv
+    adapters/            issuing-authority adapters and six-state verdict
+    mock_authorities/    simulated issuing authorities (prototype only)
+  config/                rules.yaml, checklists.yaml, doc_types.yaml, authority_keys/
+  seed/                  demo users, institutions, records, applications
+  tests/
+frontend/
+  src/site/              public website
+  src/app/               role-based portal
+  src/components/common/ shared UI (status badges, logo, ...)
+samples/                 synthetic documents incl. tampered variants, generator, evaluation
+docs/                    architecture, how it works, API, rules, sources, security, guides, mapping
+```
 
-## 📄 License
+## Problem statement coverage
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+| PS 26261 component | Status |
+|---|---|
+| Category identification and checklist | Built |
+| Retrieval of institutional records held by AICTE | Prototype-simulated (seeded records behind an API) |
+| OCR, classification, extraction | Built |
+| Missing / incomplete / expired / inconsistent flags; validation report; rectification | Built |
+| Anomaly and potential-forgery indicators with evidence | Built |
+| Verification with issuing authorities (QR signatures, registries, DigiLocker-style pull) | Prototype-simulated (adapter layer ready for authorised APIs) |
+| Six verification states with source and timestamp; manual-review routing | Built |
+| Compliance against configurable handbook norms | Built (norms illustrative) |
+| Infrastructure evidence via computer vision | Built for photographs (video and floor-plan images: roadmap) |
+| Dashboard, alerts, audit trail | Built |
+| Configurability, RBAC, access logging, explainability, human authority | Built |
+| Data retention schedule; AICTE SSO and webhooks | Designed |
+
+Full requirement-by-requirement table: [docs/PS_MAPPING.md](docs/PS_MAPPING.md) (also on the
+website at `/compliance`). Evaluation against the PS criteria: [docs/EVALUATION.md](docs/EVALUATION.md).
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, sequence, ER and state diagrams, integration, deployment |
+| [HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md) | Pipeline, every check, verification states, scoring formulas |
+| [API.md](docs/API.md) | Endpoints with roles, generated from OpenAPI |
+| [RULES_AND_CHECKLISTS.md](docs/RULES_AND_CHECKLISTS.md) | Configuring rules and checklists, rule types, worked example |
+| [VERIFICATION_SOURCES.md](docs/VERIFICATION_SOURCES.md) | Adapter model, simulated sources, plugging in DigiLocker/NBA |
+| [SECURITY_AND_SAFEGUARDS.md](docs/SECURITY_AND_SAFEGUARDS.md) | RBAC matrix, audit chain, data protection, human-in-the-loop |
+| [USER_GUIDE.md](docs/USER_GUIDE.md) | Guide for each role |
+| [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Seven-minute evaluator demo |
+| [PS_MAPPING.md](docs/PS_MAPPING.md) | Problem-statement mapping |
+| [EVALUATION.md](docs/EVALUATION.md) | Methodology and results |
+
+## Roadmap
+
+- Authorised integrations with real issuing authorities (DigiLocker Requester API, NBA/NAAC,
+  state land records, urban local body portals, ICAI UDIN).
+- AICTE SSO, records API and webhooks; PostgreSQL and object storage; worker queue for bulk intake.
+- Trained document classifiers and detectors on a labelled sample of real applications.
+- Video walkthroughs and floor-plan image analysis for infrastructure evidence.
+- Retention and archival jobs; external anchoring of the audit-chain head.
+
+## Disclaimer
+
+VeriSense is decision support. Its findings — especially forensic and infrastructure indicators —
+are preliminary and must be verified by AICTE officials; it does not approve, reject or issue
+letters. Approval Process Handbook clause references and norms in the configuration are
+illustrative and configurable, not official text. Issuing authorities are simulated. VeriSense
+uses no official AICTE or Government of India emblems.
+
+## License
+
+[MIT](LICENSE) © 2026 Zaid Sayyed.
