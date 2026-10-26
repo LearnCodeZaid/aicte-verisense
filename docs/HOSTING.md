@@ -1,0 +1,43 @@
+# Hosted demo
+
+The frontend can run on ChatGPT Sites. Live OCR, uploads, findings, rules and
+decisions run on the Python backend on a separate Docker-capable host.
+
+`render.yaml` selects Render's free service and the `wip/verisense-v2` branch.
+The Docker build includes the frontend, Python dependencies, synthetic documents,
+and a preprocessed demo database. First startup copies that snapshot to `/data`.
+This avoids running the entire OCR seed during a cold web startup.
+
+Render's free service uses ephemeral storage: uploaded documents and demo edits
+are lost when the service restarts or redeploys. Its instance can sleep when idle;
+the first subsequent request can take longer. Do not use it for real applications.
+The free plan's 512 MB memory must be verified against OCR upload workloads; the
+container has one application worker to limit concurrency. Free hosting is a demo
+configuration, not a promise of production capacity or durability.
+
+To preserve changes on another host, attach persistent storage at `/data`. The
+entrypoint preserves an existing database and uploads and keeps its JWT signing
+secret across restarts. An explicit `VERISENSE_SECRET` environment value takes
+precedence. Use the same persistent volume and make backups.
+
+## Frontend/backend connection
+
+Build the Sites frontend with `VITE_API_BASE=https://<backend-host>/api`.
+Set `VERISENSE_CORS_ORIGINS` on the backend to the exact Sites origin, without
+a trailing slash. The current origin is recorded in `render.yaml`.
+
+The app and `/portal/*` deep links can also be served from one Docker service.
+`/api/*` and missing asset paths retain genuine 404 responses.
+
+## Local container
+
+```bash
+docker compose up --build -d
+```
+
+Open `http://localhost:7860`. The named `verisense-data` volume retains changes
+between container restarts. The application honours the hosting provider's `PORT`
+environment variable. Health check: `/api/health`.
+
+Sources: [Render free limits](https://render.com/docs/free),
+[Docker deployment](https://render.com/docs/docker).

@@ -86,3 +86,9 @@ try:
     app.include_router(getattr(_mock, "router"), prefix="/mock")
 except Exception as _e:  # noqa: BLE001
     log.info("mock authorities not mounted: %s", _e)
+
+# Mount after API/mock routes so /portal/* deep links share the same origin.
+if get_settings().frontend_dir:
+    from .web import mount_frontend
+
+    mount_frontend(app, get_settings().frontend_dir)
