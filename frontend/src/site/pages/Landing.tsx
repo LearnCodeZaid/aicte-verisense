@@ -294,6 +294,7 @@ export default function Landing() {
                 <Pill className="vs-mono">{s.login}</Pill>
               </div>
               <h3 className="mt-3 font-semibold text-[#0B2E59]">{s.title}</h3>
+              <p className="mt-0.5 text-xs text-slate-500">{s.institution}</p>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{s.description}</p>
               <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
                 {s.expect.map((e) => (

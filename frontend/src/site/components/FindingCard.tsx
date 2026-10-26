@@ -93,27 +93,29 @@ export const EXAMPLE_FINDINGS: ExampleFinding[] = [
   {
     severity: "MAJOR",
     kind: "RECORD_MISMATCH",
-    title: "Declared intake differs from approved intake",
+    title: "Declared faculty count differs from AICTE records",
     reason:
-      "The intake declared for B.Tech Computer Engineering is higher than the intake in the previous Extension of Approval, but the category is EoA, not intake increase.",
-    ruleId: "R-REC-002",
-    clause: "APH 2024-27 (illustrative) — Ch. I, Approved intake",
+      "The application declares 52 faculty, but AICTE's faculty records for the institution list 49 and the uploaded roster lists 47.",
+    ruleId: "R-REC-003",
+    clause: "APH 2024-27 (illustrative) — Ch. II, Faculty details on the AICTE portal",
     evidence: [
-      { type: "RECORD", label: "Approved programmes", detail: "B.Tech CE, intake 120 (EoA 2025-26)" },
-      { type: "DOCUMENT", label: "Application form", detail: "Declared intake 180" },
+      { type: "DOCUMENT", label: "Application form", detail: "facultyCount = 52" },
+      { type: "RECORD", label: "AICTE record", detail: "count(faculty) = 49 (tolerance 10%)" },
+      { type: "DOCUMENT", label: "FACULTY_ROSTER", detail: "47 faculty listed" },
     ],
   },
   {
     severity: "MAJOR",
     kind: "ANOMALY",
-    title: "Possible alteration on land document, page 2",
+    title: "Possible alteration on the land deed",
     reason:
-      "Error level analysis shows a localised region with compression behaviour different from the rest of the page, and the file was last saved by an image editor.",
+      "The PDF was last saved by an image editor with an incremental update, and the survey number is set in a font used nowhere else on the page.",
     ruleId: "R-FOR-001",
-    clause: "APH 2024-27 (illustrative) — Authenticity of uploaded documents",
+    clause: "APH 2024-27 (illustrative) — Ch. I, Authenticity of uploaded documents",
     evidence: [
-      { type: "IMAGE_REGION", label: "LAND_DOCUMENT p.2", detail: "High-ELA region around the survey number" },
-      { type: "METADATA", label: "Producer", detail: "Image editing software; modified 41 days after creation" },
+      { type: "METADATA", label: "Producer", detail: "Image editing software; incremental update present" },
+      { type: "IMAGE_REGION", label: "LAND_DOCUMENT p.1", detail: "Font inconsistency near “148/2”" },
+      { type: "SOURCE_RESPONSE", label: "Land records (simulated)", detail: "Survey 118/2, 5.20 acres on record" },
     ],
   },
 ];
