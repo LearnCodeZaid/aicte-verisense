@@ -29,6 +29,7 @@ MAX_OCR_SIDE = 2200
 
 _engine = None
 _lock = threading.Lock()
+_inference_lock = threading.Lock()
 
 
 def get_ocr_engine():
@@ -37,8 +38,12 @@ def get_ocr_engine():
     with _lock:
         if _engine is None:
             from rapidocr_onnxruntime import RapidOCR
+            from app.config import get_settings
 
-            _engine = RapidOCR()
+            # Hosts can expose many CPU cores despite granting a small CPU/RAM
+            # quota. Bound each ONNX session instead of auto-sizing thread pools.
+            threads = max(1, int(get_settings().ocr_threads))
+            _engine = RapidOCR(intra_op_num_threads=threads, inter_op_num_threads=threads)
     return _engine
 
 
@@ -55,7 +60,9 @@ def ocr_image_array(img_bgr: np.ndarray, page: int = 1, scale: float = 1.0) -> l
         engine = _engine
     if engine is None:
         engine = get_ocr_engine()
-    result, _ = engine(img_bgr)
+    # Concurrent uploads share a model and must not multiply inference memory.
+    with _inference_lock:
+        result, _ = engine(img_bgr)
     blocks = []
     for box, text, score in result or []:
         xs = [p[0] for p in box]

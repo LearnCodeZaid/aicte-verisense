@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     config_dir: str = str(BACKEND_DIR / "config")
     autoseed: bool = True
     frontend_dir: str | None = None
+    ocr_threads: int = 1
     jwt_expiry_hours: int = 8
     # optional fixed "scrutiny date" (YYYY-MM-DD) for reproducible demos; default = today
     reference_date: str | None = None

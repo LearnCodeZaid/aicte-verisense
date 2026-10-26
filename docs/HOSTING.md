@@ -15,6 +15,10 @@ The free plan's 512 MB memory must be verified against OCR upload workloads; the
 container has one application worker to limit concurrency. Free hosting is a demo
 configuration, not a promise of production capacity or durability.
 
+OCR defaults to one intra/inter-op thread per ONNX session and serialises shared
+model inference. OpenCV also uses one thread in the container. This avoids sizing
+thread pools from the host CPU count rather than the instance's actual quota.
+
 To preserve changes on another host, attach persistent storage at `/data`. The
 entrypoint preserves an existing database and uploads and keeps its JWT signing
 secret across restarts. An explicit `VERISENSE_SECRET` environment value takes
