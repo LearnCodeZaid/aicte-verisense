@@ -102,7 +102,7 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiCard label="Applications" value={fmtNumber(t.applications)} icon={FileStack} to="/portal/applications" />
         <KpiCard label="Pending validation" value={fmtNumber(t.pendingValidation)} icon={Hourglass} tone="info" to="/portal/applications?status=SUBMITTED" />
         <KpiCard label="Deficiencies flagged" value={fmtNumber(t.deficiencies)} icon={AlertTriangle} tone="danger" to="/portal/applications?status=DEFICIENCIES_FLAGGED" />

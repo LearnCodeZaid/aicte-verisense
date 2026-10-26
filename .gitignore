@@ -41,4 +41,7 @@ __pycache__/
 backend/data/
 backend/storage/
 *.db
+.pytest_tmp/
+.pytest_cache/
+*.ela.png
 .env

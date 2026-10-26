@@ -235,7 +235,12 @@ If no rule ran, the score is 100.
 ### Risk score (0–100) and band
 
 ```text
-risk = min(100, Σ_f  points(sev_f) × mult(kind_f))     over findings with status OPEN, ACKNOWLEDGED or ESCALATED
+Only OPEN, ACKNOWLEDGED and ESCALATED findings contribute.
+Group points(severity) × mult(kind) by (kind, severity).
+For each group: contribution = min(2 × peak, peak + 0.25 × (sum − peak)).
+All MINOR contributions combined are capped at 15.
+risk = min(100, substantive contributions + capped minor contributions).
+An open CRITICAL VERIFICATION, ANOMALY, DUPLICATE or RECORD_MISMATCH sets a floor of 60.
 ```
 
 | Severity | points |
@@ -254,6 +259,12 @@ risk = min(100, Σ_f  points(sev_f) × mult(kind_f))     over findings with stat
 | MISSING_FIELD | 0.3 |
 
 Band: **LOW** < 30 ≤ **MEDIUM** < 60 ≤ **HIGH**.
+
+These are illustrative queue-prioritisation thresholds, not a statistically calibrated probability.
+A single missing document still creates its critical finding and blocks approval where applicable;
+it does not by itself imply fraud. Repeated low-level indicators cannot overwhelm a clean application.
+Perceptual hashes require matching reference/text before flagging near-duplicates. Identifiable
+original owners (institution name or campus GPS) are not penalised when their evidence is reused elsewhere.
 
 Compliance measures *how much of the rulebook is satisfied*; risk measures *how much integrity
 concern is open*. Dismissed and rectified findings stop counting. Both are for prioritising the

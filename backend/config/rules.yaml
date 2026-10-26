@@ -308,7 +308,7 @@ rules:
   # ---------------------------------------------------------------- integrity
   - id: R-DUP-001
     name: Document reused across institutions
-    description: Identical (SHA-256) or near-identical (perceptual hash, Hamming distance <= maxHamming) documents submitted by another institution.
+    description: Identical (SHA-256) or near-identical (perceptual hash plus matching reference/text) documents claimed by another institution. Identifiable original owners are not penalised.
     categories: [ALL]
     type: DUPLICATE_DOCUMENT
     kind: DUPLICATE

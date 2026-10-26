@@ -20,9 +20,32 @@ report. Final decisions remain with the competent authority.
 
 ## Screenshots
 
-Screenshots live in [`docs/images/`](docs/images/). *(To add: landing page, officer dashboard,
-application findings with evidence, document viewer with ELA overlay, verification tab, admin rules
-editor, audit chain verification.)*
+Captured from a running local demo in Microsoft Edge. Full gallery: [`docs/images/`](docs/images/).
+
+| Officer dashboard | Clean application — LOW risk |
+|---|---|
+| ![Officer dashboard](docs/images/dashboard.png) | ![Clean application](docs/images/clean-application.png) |
+| Evidence and ELA overlay | All six verification states |
+| ![Document with ELA overlay](docs/images/document-ela.png) | ![Verification states](docs/images/verification.png) |
+| Measured evaluation | Public website |
+| ![Evaluation results](docs/images/evaluation.png) | ![Landing page](docs/images/landing.png) |
+
+## Demo readiness and measured results
+
+- Clean NVIE renewal: **100 compliance, LOW risk**; new-course case: **MEDIUM risk**;
+  planted Apex tampering remains **HIGH risk**. Risk indicators no longer accumulate without bounds.
+- All **12 applications have documents**: six detailed scenarios and six supporting-document scenarios
+  with intentionally incomplete category checklists. Seeding also backfills older demo databases.
+- All six issuing-authority states occur, including a genuine simulated 503 response for the scanned State NOC.
+- Synthetic evaluation: **99.1% normalised field accuracy (225/227)**, **56/56 document classifications**,
+  **42/42 expected verification states**, and **5/5 source mismatches correctly flagged**.
+- Forensic benchmark: **100% precision, 41.7% recall** on 20 fixtures (5 TP, 0 FP, 7 FN, 8 TN).
+  This low recall is a known limitation, not production-grade authentication.
+- Browser checks cover public pages, mobile evaluation layout, all seven tabs of all 12 applications,
+  admin pages and the ELA switch. The walkthrough checks page errors and failed local requests.
+
+Raw results: [`samples/evaluation.json`](samples/evaluation.json). Methodology, reproduction and
+remaining work: [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ## What it does
 
@@ -79,7 +102,13 @@ npm run dev
 - Website: <http://localhost:5176/> · Portal: <http://localhost:5176/portal/login>
 - Interactive API docs: <http://localhost:8001/docs>
 - Re-seed from scratch: `cd backend && uv run python -m seed.seed --reset`
+- Refresh an existing demo after updating: `cd backend && uv run python -m seed.seed --refresh`
+  (updates synthetic records/analysis, preserves uploads, reviewer decisions and workflow statuses).
 - Tests: `cd backend && uv run pytest`
+- Recompute evaluation: `cd backend && uv run python evaluate.py`
+- Browser walkthrough (running backend + frontend; installed Edge):
+  `cd frontend && node scripts/smoke-ui.mjs` (defaults to `http://127.0.0.1:5186`;
+  set `VERISENSE_URL=http://localhost:5176` for the normal quickstart).
 
 ### Demo credentials
 

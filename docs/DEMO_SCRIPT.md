@@ -88,8 +88,9 @@ Application numbers are generated at seed time; find them by institution and cat
 
 1. Back as `officer.wro`, open the **NVIE new course** application.
 2. **Verification**: State NOC *Source unavailable*, university consent *Verification pending*,
-   corpus FDR and floor plan *Manual review required*. Status is **Source verification pending**,
-   not failed and not passed.
+   corpus FDR and floor plan *Manual review required*. The application is **MEDIUM risk**;
+   its faculty-ratio compliance gap can keep the workflow at **Deficiencies flagged**.
+   A source outage alone neither passes nor fails authenticity.
 3. Click re-verify on a document to show the timestamped retry.
 4. (Optional, 10 s) Open **NVIE EoA**: the clean baseline — everything verified, low risk.
 

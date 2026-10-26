@@ -16,7 +16,7 @@ export default function Evaluation() {
           <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-[#1D4E89]" aria-hidden />
           <span>
             {EVAL_DATASET.summary}
-            {EVAL_DATASET.generatedAt && <> Last run {EVAL_DATASET.generatedAt}.</>}
+            {EVAL_DATASET.generatedAt && <> Last run {new Date(EVAL_DATASET.generatedAt).toLocaleString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} UTC.</>}
           </span>
         </div>
       </PageHero>

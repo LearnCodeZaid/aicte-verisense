@@ -23,9 +23,9 @@ export function KpiCard({ label, value, hint, icon: Icon, tone = "default", to }
   const body = (
     <div className="flex h-full items-start justify-between gap-3 p-4">
       <div className="min-w-0">
-        <p className="truncate text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium leading-5 text-muted-foreground">{label}</p>
         <p className="tabular mt-1.5 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-        {hint && <p className="mt-1 truncate text-xs text-muted-foreground">{hint}</p>}
+        {hint && <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p>}
       </div>
       {Icon && (
         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md", TONE[tone])}>

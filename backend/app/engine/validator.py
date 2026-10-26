@@ -731,7 +731,10 @@ def r_ter_payment(rule, ctx: Ctx) -> Outcome:
     cur = [x for x in pays if str(x.get("year")) == ctx.app.academic_year]
     o = Outcome(checks=1)
     notes = []
-    paid = next((x for x in cur if str(x.get("status")).upper() == "PAID"), None)
+    declared = ctx.form.get(p.get("formField", "terTxnId"))
+    paid_records = [x for x in cur if str(x.get("status")).upper() == "PAID"]
+    paid = next((x for x in paid_records if str(x.get("txnId", "")).upper() == str(declared or "").upper()),
+                paid_records[0] if paid_records else None)
     if not paid:
         o.failed += 1
         st = cur[0].get("status") if cur else "no record"
@@ -742,7 +745,6 @@ def r_ter_payment(rule, ctx: Ctx) -> Outcome:
         notes.append(f"record status {st}")
     else:
         notes.append(f"record PAID {paid.get('txnId')} on {paid.get('paidOn')}")
-    declared = ctx.form.get(p.get("formField", "terTxnId"))
     if declared and paid:
         o.checks += 1
         if str(declared).strip().upper() != str(paid.get("txnId", "")).strip().upper():
@@ -789,12 +791,29 @@ def r_duplicate_document(rule, ctx: Ctx) -> Outcome:
     for d in mine:
         hits = []
         for od, oa, oi in others:
+            # Do not penalise an identifiable original owner for another
+            # institution claiming its evidence.
+            owner = get_value(d.extracted_fields, "institutionName")
+            if owner and similarity(owner, ctx.inst.name) >= 0.9 and similarity(owner, oi.name) < 0.9:
+                continue
+            gps = ((d.infra or {}).get("exif") or {}).get("gps")
+            own_distance = _haversine_km(gps, ctx.inst.campus_gps) if gps and ctx.inst.campus_gps else None
+            other_distance = _haversine_km(gps, oi.campus_gps) if gps and oi.campus_gps else None
+            if own_distance is not None and other_distance is not None and own_distance <= 2 < other_distance:
+                continue
             if od.sha256 == d.sha256:
                 hits.append((od, oa, oi, "identical file (SHA-256)", 0))
             elif d.phash and od.phash and d.doc_type == od.doc_type:
                 h = _hamming(d.phash, od.phash)
-                if h is not None and h <= max_h:
-                    hits.append((od, oa, oi, f"visually near-identical (pHash distance {h})", h))
+                # pHash captures page layout; common templates collide.
+                # Require independent content evidence for near-duplicates.
+                same_ref = bool(d.reference_no and od.reference_no and
+                                re.sub(r"\W", "", d.reference_no).upper() == re.sub(r"\W", "", od.reference_no).upper())
+                text = re.sub(r"\s+", "", d.ocr_text or "").casefold()
+                other_text = re.sub(r"\s+", "", od.ocr_text or "").casefold()
+                same_text = len(text) >= 80 and text == other_text
+                if h is not None and h <= max_h and (same_ref or same_text):
+                    hits.append((od, oa, oi, f"visually near-identical (pHash distance {h}), corroborated by matching reference/text", h))
         if hits:
             o.failed += 1
             od, oa, oi, how, _ = sorted(hits, key=lambda x: x[4])[0]
@@ -995,11 +1014,28 @@ def compute_scores(rules_applied: list[dict], findings, weights: dict) -> tuple[
         num += w * max(0.0, frac)
         den += w
     compliance = round(100 * num / den, 1) if den else 100.0
-    risk = 0.0
+    # Repeated indicators from the same family are correlated evidence, not
+    # independent reasons to escalate. Minor-only applications stay LOW.
+    groups: dict[tuple[str, str], list[float]] = {}
+    critical_integrity = False
     for f in findings:
         if f.status not in ACTIVE_STATUSES:
             continue
-        risk += SEV_POINTS.get(f.severity, 0) * KIND_MULT.get(f.kind, 0.4)
+        points = SEV_POINTS.get(f.severity, 0) * KIND_MULT.get(f.kind, 0.4)
+        groups.setdefault((f.kind, f.severity), []).append(points)
+        if f.severity == "CRITICAL" and f.kind in {"VERIFICATION", "ANOMALY", "DUPLICATE", "RECORD_MISMATCH"}:
+            critical_integrity = True
+    minor = substantive = 0.0
+    for (_, severity), points in groups.items():
+        peak = max(points)
+        contribution = min(2 * peak, peak + 0.25 * (sum(points) - peak))
+        if severity == "MINOR":
+            minor += contribution
+        else:
+            substantive += contribution
+    risk = substantive + min(15.0, minor)
+    if critical_integrity:
+        risk = max(60.0, risk)
     risk = round(min(100.0, risk), 1)
     band = "LOW" if risk < 30 else ("MEDIUM" if risk < 60 else "HIGH")
     return compliance, risk, band

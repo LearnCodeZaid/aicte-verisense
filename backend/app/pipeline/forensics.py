@@ -202,6 +202,8 @@ def _text_layer_flags(doc) -> list[dict]:
             for ln in blk.get("lines", []):
                 spans = [s for s in ln.get("spans", []) if s.get("text", "").strip()]
                 for s in spans:
+                    s["_direction"] = ln.get("dir", (1.0, 0.0))
+                for s in spans:
                     fam_chars[_font_family(s.get("font", ""))] += len(s["text"].strip())
                 if spans:
                     lines.append(spans)
@@ -239,8 +241,22 @@ def _text_layer_flags(doc) -> list[dict]:
             a = flat[i]
             for j in range(i + 1, len(flat)):
                 b = flat[j]
-                ax0, ay0, ax1, ay1 = a["bbox"]
-                bx0, by0, bx1, by1 = b["bbox"]
+                # Axis-aligned boxes overlap on adjacent rotated seal text.
+                # Compare actual text quads in their shared baseline coordinates.
+                direction = a["_direction"]
+                other = b["_direction"]
+                if direction[0] * other[0] + direction[1] * other[1] < 0.98:
+                    continue
+                import pymupdf
+
+                def bounds(span):
+                    quad = pymupdf.recover_quad(span["_direction"], span)
+                    along = [p.x * direction[0] + p.y * direction[1] for p in quad]
+                    across = [-p.x * direction[1] + p.y * direction[0] for p in quad]
+                    return min(along), min(across), max(along), max(across)
+
+                ax0, ay0, ax1, ay1 = bounds(a)
+                bx0, by0, bx1, by1 = bounds(b)
                 iw = min(ax1, bx1) - max(ax0, bx0)
                 ih = min(ay1, by1) - max(ay0, by0)
                 if iw <= 0 or ih <= 0:
@@ -250,7 +266,7 @@ def _text_layer_flags(doc) -> list[dict]:
                 if inter / small > 0.5 and a["text"].strip() != b["text"].strip():
                     flags.append(_flag("TEXT_OVERLAY", "MAJOR",
                                        f"Two different text runs occupy the same position ('{a['text'].strip()[:30]}' / '{b['text'].strip()[:30]}') - text may have been pasted over original content",
-                                       page=pno, bbox=[round(min(ax0, bx0), 1), round(min(ay0, by0), 1), round(max(ax1, bx1), 1), round(max(ay1, by1), 1)],
+                                       page=pno, bbox=[round(min(a['bbox'][0], b['bbox'][0]), 1), round(min(a['bbox'][1], b['bbox'][1]), 1), round(max(a['bbox'][2], b['bbox'][2]), 1), round(max(a['bbox'][3], b['bbox'][3]), 1)],
                                        excerpt=f"{a['text'].strip()[:40]} | {b['text'].strip()[:40]}"))
     # de-duplicate (one flag per excerpt+page)
     seen, out = set(), []

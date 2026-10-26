@@ -133,7 +133,9 @@ class _Out(dict):
             self.put(name, parse_date(r[0]), conf, r[1], r[2])
 
     def ref(self, name, labels, conf=0.9, rx=REF_RX):
-        r = _find(self.text, labels, rx)
+        # OCR frequently joins label words (e.g. MutationEntryNo.). Keep
+        # reference values exact; tolerate missing spaces only in labels.
+        r = _find(self.text, [label.replace(r"\s+", r"\s*") for label in labels], rx)
         if r:
             self.put(name, r[0].rstrip(".,;"), conf, r[1], r[2])
 
@@ -164,7 +166,7 @@ REF_LABELS = {
     "STRUCTURAL_STABILITY_CERT": [r"Certificate\s+No\.?", r"Ref(?:erence)?\.?\s*No\.?"],
     "AFFIDAVIT_UNDERTAKING": [r"e-?Stamp\s+(?:Certificate\s+)?No\.?", r"Stamp\s+(?:Paper\s+)?No\.?", r"Certificate\s+No\.?", r"Notarial\s+Reg(?:istration|n)?\.?\s+No\.?"],
     "UNIVERSITY_AFFILIATION": [r"Letter\s+No\.?", r"Ref(?:erence)?\.?\s*No\.?", r"\bNo\."],
-    "STATE_GOVT_NOC": [r"NOC\s+No\.?", r"Letter\s+No\.?", r"G\.?\s?R\.?\s+No\.?", r"Ref(?:erence)?\.?\s*No\.?", r"\bNo\."],
+    "STATE_GOVT_NOC": [r"NOC\s*No\.?", r"Letter\s+No\.?", r"G\.?\s?R\.?\s+No\.?", r"Ref(?:erence)?\.?\s*No\.?", r"\bNo\."],
     "PREVIOUS_EOA_LETTER": [r"F\.\s?No\.?", r"File\s+No\.?", r"Letter\s+No\.?", r"Ref(?:erence)?\.?\s*No\.?"],
     "NBA_ACCREDITATION": [r"Accreditation\s+(?:Ref(?:erence)?|No\.?|Certificate\s+No\.?)\.?\s*(?:No\.?)?", r"Certificate\s+No\.?", r"Ref(?:erence)?\.?\s*No\.?"],
     "NAAC_ACCREDITATION": [r"(?:EC|Certificate|Accreditation)\s+No\.?", r"Ref(?:erence)?\.?\s*No\.?"],
@@ -176,7 +178,7 @@ REF_LABELS = {
 }
 GENERIC_REF = [r"Ref(?:erence)?\.?\s*No\.?", r"Certificate\s+No\.?"]
 ISSUE_LABELS = [r"Date\s+of\s+(?:Issue|Registration|Payment|Deposit|Approval|Accreditation\s+Decision)", r"Issue\s+Date",
-                r"Issued\s+on", r"Payment\s+Date", r"Deposit\s+Date", r"Dated", r"Date"]
+                r"Issued\s+on", r"Payment\s+Date", r"Deposit\s+Date", r"\bDate(?=\s*:)", r"Dated", r"Date"]
 EXPIRY_LABELS = [r"Valid\s+(?:up\s?to|till|until|upto|through)", r"Validity(?:\s+(?:up\s?to|till|period\s+up\s?to))?",
                  r"(?:Date\s+of\s+)?Expiry(?:\s+Date)?", r"Expires\s+on", r"Valid\s+To", r"Accredited\s+up\s?to"]
 INSTITUTION_LABELS = [r"Name\s+of\s+(?:the\s+)?(?:Institut(?:e|ion)|College)", r"Institut(?:e|ion)\s+Name",
@@ -201,7 +203,7 @@ def _issuer(out: _Out, text: str):
 
 
 def _institution(out: _Out, text: str):
-    r = _find(text, INSTITUTION_LABELS, TEXT_RX)
+    r = _find(text, [r"^\s*" + label + r"(?=\s*:|\s{2,})" for label in INSTITUTION_LABELS], TEXT_RX, flags=re.I | re.M)
     if r and re.search(r"[A-Za-z]{3}", r[0]):
         out.put("institutionName", r[0].strip(" ,.;:"), 0.88, r[1], r[2])
         return
@@ -390,6 +392,7 @@ def extract_fields(doc_type: str, text: str, ocr_confidence: float = 1.0) -> dic
         out.textf("engineerName", [r"(?:Name\s+of\s+)?(?:Structural\s+)?Engineer(?=\s*:)", r"Certified\s+by"])
         out.ref("licenceNo", [r"Licen[cs]e\s+No\.?", r"Registration\s+No\.?"])
     elif t == "AFFIDAVIT_UNDERTAKING":
+        out.textf("deponentName", [r"\bDeponent(?=\s*:)"])
         m = re.search(r"\bI,\s+([A-Z][A-Za-z.' ]{3,60}?),", text)
         if m:
             out.put("deponentName", m.group(1).strip(), 0.8, m.start(1), m.end(1))

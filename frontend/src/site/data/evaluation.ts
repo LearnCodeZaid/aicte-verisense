@@ -1,5 +1,5 @@
-// Evaluation methodology and results. Results are transcribed from samples/evaluation.json
-// (produced by the evaluation script over the synthetic dataset). null = not yet measured.
+// Generated alongside samples/evaluation.json by backend/evaluate.py.
+import measured from "./evaluation.generated.json";
 
 export type EvalCriterion = {
   key: string;
@@ -15,14 +15,14 @@ export const EVAL_CRITERIA: EvalCriterion[] = [
     name: "Extraction accuracy",
     measures: "How often key fields (reference number, dates, issuer, amounts, intake) are read correctly.",
     method: "Each synthetic document is generated with known ground-truth field values; the pipeline's extracted values are compared after normalisation.",
-    metric: "Exact-match accuracy per field; classification accuracy per document type",
+    metric: "Normalised field-match accuracy; classification accuracy per document type",
   },
   {
     key: "validation",
     name: "Validation accuracy",
     measures: "Whether the rule engine raises the findings each scenario is designed to contain, and no others.",
-    method: "Every demo application lists its expected findings (kind and document type). The validator's output is compared with that list.",
-    metric: "Precision, recall and F1 over expected findings",
+    method: "Each free-text scenario expectation is matched to findings by kind and target. Labels are incomplete, so this is a coverage proxy, not a full accuracy estimate.",
+    metric: "Expected-scenario coverage; precision/F1 require exhaustive labels",
   },
   {
     key: "anomaly",
@@ -43,7 +43,7 @@ export const EVAL_CRITERIA: EvalCriterion[] = [
     name: "Discrepancy reliability",
     measures: "Whether mismatches reported against source or records are real.",
     method: "Documents with planted field differences are compared with source records; reported mismatches are checked against the planted ones.",
-    metric: "Precision of MISMATCH_DETECTED and RECORD_MISMATCH",
+    metric: "Source-mismatch precision; record-mismatch precision awaits independent labels",
   },
   {
     key: "time",
@@ -71,8 +71,9 @@ export const EVAL_CRITERIA: EvalCriterion[] = [
 export type EvalResult = { headline: string; detail?: string };
 
 /** Filled from samples/evaluation.json. */
-export const EVAL_RESULTS: Record<string, EvalResult> | null = null;
+export const EVAL_RESULTS: Record<string, EvalResult> = measured.results;
 
 export const EVAL_DATASET: { generatedAt?: string; summary: string } = {
-  summary: "Synthetic dataset of institutions, applications and documents, including tampered variants, produced by samples/tools/generate.py.",
+  summary: measured.dataset.summary,
+  generatedAt: measured.generatedAt,
 };

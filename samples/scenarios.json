@@ -622,6 +622,20 @@
             "txnId": "TERX2026021900877",
             "status": "PAID",
             "paidOn": "2026-02-19"
+          },
+          {
+            "year": "2027-28",
+            "amount": 150000,
+            "txnId": "TERX2026091800417",
+            "status": "PAID",
+            "paidOn": "2026-09-18"
+          },
+          {
+            "year": "2027-28",
+            "amount": 100000,
+            "txnId": "TERX2026100200981",
+            "status": "PAID",
+            "paidOn": "2026-10-02"
           }
         ],
         "deficiencyHistory": [
