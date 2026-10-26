@@ -33,3 +33,16 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# VeriSense local artefacts
+.venv/
+__pycache__/
+*.pyc
+backend/data/
+backend/storage/
+*.db
+.pytest_tmp/
+.pytest_hosting_tmp/
+.pytest_cache/
+*.ela.png
+.env
