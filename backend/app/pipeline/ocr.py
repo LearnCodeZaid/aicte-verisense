@@ -14,6 +14,7 @@ table rows and "Label: value" pairs survive as single lines for the extractor.
 from __future__ import annotations
 
 import csv
+import gc
 import io
 import threading
 from pathlib import Path
@@ -33,7 +34,7 @@ _inference_lock = threading.Lock()
 
 
 def get_ocr_engine():
-    """Lazily construct the RapidOCR engine once per process (model load ~2-3 s)."""
+    """Lazily construct RapidOCR; optional caching is for larger instances."""
     global _engine
     with _lock:
         if _engine is None:
@@ -43,7 +44,8 @@ def get_ocr_engine():
             # Hosts can expose many CPU cores despite granting a small CPU/RAM
             # quota. Bound each ONNX session instead of auto-sizing thread pools.
             threads = max(1, int(get_settings().ocr_threads))
-            _engine = RapidOCR(intra_op_num_threads=threads, inter_op_num_threads=threads)
+            _engine = RapidOCR(intra_op_num_threads=threads, inter_op_num_threads=threads,
+                               rec_batch_num=1, cls_batch_num=1)
     return _engine
 
 
@@ -56,13 +58,21 @@ def ocr_image_array(img_bgr: np.ndarray, page: int = 1, scale: float = 1.0) -> l
     if max(h, w) > MAX_OCR_SIDE:
         factor = MAX_OCR_SIDE / max(h, w)
         img_bgr = cv2.resize(img_bgr, (int(w * factor), int(h * factor)), interpolation=cv2.INTER_AREA)
-    with _lock:
-        engine = _engine
-    if engine is None:
-        engine = get_ocr_engine()
-    # Concurrent uploads share a model and must not multiply inference memory.
+    # Create/use/release under one lock: model construction itself is expensive.
+    # On small hosts, don't retain model memory through ELA/QR analysis afterward.
     with _inference_lock:
-        result, _ = engine(img_bgr)
+        from app.config import get_settings
+
+        engine = get_ocr_engine()
+        try:
+            result, _ = engine(img_bgr)
+        finally:
+            if not get_settings().ocr_cache:
+                global _engine
+                with _lock:
+                    _engine = None
+                del engine
+                gc.collect()
     blocks = []
     for box, text, score in result or []:
         xs = [p[0] for p in box]

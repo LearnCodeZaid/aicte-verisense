@@ -223,7 +223,9 @@ def ingest_document(db: Session, app: Application, data: bytes, filename: str, d
     def stage(name: str, fn):
         ts = time.perf_counter()
         try:
+            log.info("pipeline stage %s started for %s", name, filename)
             summary = fn()
+            log.info("pipeline stage %s completed for %s", name, filename)
             ms = int((time.perf_counter() - ts) * 1000)
             stage_log.append({"stage": name, "ok": True, "ms": ms})
             audit.record(db, actor, "PIPELINE_STAGE", "Document", doc.id,

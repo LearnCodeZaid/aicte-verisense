@@ -18,6 +18,8 @@ configuration, not a promise of production capacity or durability.
 OCR defaults to one intra/inter-op thread per ONNX session and serialises shared
 model inference. OpenCV also uses one thread in the container. This avoids sizing
 thread pools from the host CPU count rather than the instance's actual quota.
+OCR models are released before forensic/QR analysis to avoid overlapping their
+memory peaks. Larger hosts can opt into model caching with `VERISENSE_OCR_CACHE=1`.
 
 To preserve changes on another host, attach persistent storage at `/data`. The
 entrypoint preserves an existing database and uploads and keeps its JWT signing
